@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Comparison Tool</title>
+
+    <!-- Required Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.37.11/docxtemplater.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PizZip/3.0.6/pizzip.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f6f6f6;
+        }
+
+        .upload-section {
+            background: white;
+            padding: 20px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .file-input-group {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-input-group label {
+            min-width: 150px;
+        }
+
+        .file-input-group input[type="file"] {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #f8f9fa;
+        }
+
+        .compare-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+
+        .compare-btn:hover {
+            background-color: #45a049;
+        }
+
+        .compare-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+            height: calc(100vh - 140px);
+        }
+
+        .file-container {
+            flex: 1;
+            background: white;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .file-header {
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .file-content {
+            flex: 1;
+            overflow: auto;
+            padding: 16px;
+            position: relative;
+            background: #fff;
+        }
+
+        .error-message {
+            color: #dc3545;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #6c757d;
+        }
+
+        .loading::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            margin-left: 10px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* PDF Viewer Styles */
+        .pdf-viewer {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 10px;
+        }
+
+        .pdf-viewer canvas {
+            max-width: 100%;
+            height: auto;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* DOCX Viewer Styles */
+        .docx-viewer {
+            background: white;
+            padding: 20px;
+            font-family: "Times New Roman", Times, serif;
+            line-height: 1.5;
+        }
+
+        .docx-viewer img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .docx-viewer table {
+            border-collapse: collapse;
+            margin: 1em 0;
+            width: 100%;
+        }
+
+        .docx-viewer td, .docx-viewer th {
+            border: 1px solid #ccc;
+            padding: 8px;
+        }
+
+        .docx-viewer p {
+            margin: 0 0 1em 0;
+        }
+
+        .docx-viewer h1,
+        .docx-viewer h2,
+        .docx-viewer h3,
+        .docx-viewer h4,
+        .docx-viewer h5,
+        .docx-viewer h6 {
+            margin: 1em 0 0.5em 0;
+        }
+
+        .docx-viewer ul,
+        .docx-viewer ol {
+            margin: 0 0 1em 0;
+            padding-left: 2em;
+        }
+
+        /* File name display */
+        .file-name {
+            margin-left: 10px;
+            color: #6c757d;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
+
+        /* Highlight styles for differences */
+        .diff-delete {
+            background-color: #ffd7d7;
+            text-decoration: line-through;
+        }
+
+        .diff-insert {
+            background-color: #d7ffd7;
+        }
+    </style>
+</head>
+<body>
+    <div class="upload-section">
+        <div class="file-input-group">
+            <label for="file1">Choose Original File:</label>
+            <input type="file" id="file1" accept=".pdf,.docx"/>
+            <span class="file-name" id="fileName1"></span>
+        </div>
+        <div class="file-input-group">
+            <label for="file2">Choose Modified File:</label>
+            <input type="file" id="file2" accept=".pdf,.docx"/>
+            <span class="file-name" id="fileName2"></span>
+        </div>
+        <button class="compare-btn" onclick="compareFiles()" id="compareBtn" disabled>Compare Files</button>
+    </div>
+
+    <div class="container">
+        <div class="file-container">
+            <div class="file-header">Original File</div>
+            <div class="file-content" id="content1"></div>
+        </div>
+        <div class="file-container">
+            <div class="file-header">Modified File</div>
+            <div class="file-content" id="content2"></div>
+        </div>
+    </div>
+
+    <script src="/static/main.js"></script>
+
+    <script>
+        // 为了确保所有需要的库都加载完毕
+        window.onload = function() {
+            // 配置 PDF.js worker
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+            // 初始化 docxtemplater
+            if (typeof docxtemplater !== 'undefined') {
+                console.log('Docxtemplater loaded successfully');
+            } else {
+                console.error('Docxtemplater failed to load');
+            }
+
+            // 初始化 PizZip
+            if (typeof PizZip !== 'undefined') {
+                console.log('PizZip loaded successfully');
+            } else {
+                console.error('PizZip failed to load');
+            }
+
+            // 初始化 mammoth
+            if (typeof mammoth !== 'undefined') {
+                console.log('Mammoth loaded successfully');
+            } else {
+                console.error('Mammoth failed to load');
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+Flask
+Flask-Cors
+PyPDF2
+python-docx

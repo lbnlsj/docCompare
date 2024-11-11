@@ -168,18 +168,10 @@ async function autoLoadAndCompare() {
         file1Input.files = dataTransfer1.files;
         file2Input.files = dataTransfer2.files;
 
-        // 创建Promise来追踪渲染完成
-        const renderPromise1 = handleFileSelect(file1Input, 'fileName1');
-        const renderPromise2 = handleFileSelect(file2Input, 'fileName2');
+        await handleFileSelect(file1Input, 'fileName1');
+        await handleFileSelect(file2Input, 'fileName2');
 
-        // 等待两个文件都渲染完成
-        await Promise.all([renderPromise1, renderPromise2]);
-
-        // 添加一个小延迟确保DOM完全更新
-        await new Promise(resolve => requestAnimationFrame(resolve));
-
-        // 执行比较
-        await compareFiles();
+        setTimeout(compareFiles, 1000);
 
     } catch (error) {
         console.error('Auto load error:', error);

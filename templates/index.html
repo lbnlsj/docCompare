@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document Comparison Tool</title>
+    <script src="https://unpkg.com/pdfjs-dist@3.11.174/web/pdf_viewer.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/pdfjs-dist@3.11.174/web/pdf_viewer.css">
     <script src="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
     <script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
     <script src="https://unpkg.com/docx-preview@0.3.2/dist/docx-preview.min.js"></script>
@@ -12,16 +14,16 @@
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
     </script>
     <!-- 按依赖顺序引入自定义脚本 -->
-<!--    &lt;!&ndash; 按正确的依赖顺序引入自定义脚本 &ndash;&gt;-->
-<!--    <script src="/static/js/state.js"></script>           &lt;!&ndash; 1. 状态管理 &ndash;&gt;-->
-<!--    <script src="/static/js/utils.js"></script>          &lt;!&ndash; 2. 工具函数 &ndash;&gt;-->
-<!--    <script src="/static/js/renderers/pdfRenderer.js"></script>    &lt;!&ndash; 3. 渲染器 &ndash;&gt;-->
-<!--    <script src="/static/js/renderers/docxRenderer.js"></script>-->
-<!--    <script src="/static/js/viewers.js"></script>        &lt;!&ndash; 4. 查看器 &ndash;&gt;-->
-<!--    <script src="/static/js/comparison.js"></script>     &lt;!&ndash; 5. 比较功能 &ndash;&gt;-->
-<!--    <script src="/static/js/fileHandlers.js"></script>   &lt;!&ndash; 6. 文件处理 &ndash;&gt;-->
-<!--    <script src="/static/js/styles.js"></script>         &lt;!&ndash; 7. 样式 &ndash;&gt;-->
-<!--    <script src="/static/js/init.js"></script>-->
+    <!--    &lt;!&ndash; 按正确的依赖顺序引入自定义脚本 &ndash;&gt;-->
+    <!--    <script src="/static/js/state.js"></script>           &lt;!&ndash; 1. 状态管理 &ndash;&gt;-->
+    <!--    <script src="/static/js/utils.js"></script>          &lt;!&ndash; 2. 工具函数 &ndash;&gt;-->
+    <!--    <script src="/static/js/renderers/pdfRenderer.js"></script>    &lt;!&ndash; 3. 渲染器 &ndash;&gt;-->
+    <!--    <script src="/static/js/renderers/docxRenderer.js"></script>-->
+    <!--    <script src="/static/js/viewers.js"></script>        &lt;!&ndash; 4. 查看器 &ndash;&gt;-->
+    <!--    <script src="/static/js/comparison.js"></script>     &lt;!&ndash; 5. 比较功能 &ndash;&gt;-->
+    <!--    <script src="/static/js/fileHandlers.js"></script>   &lt;!&ndash; 6. 文件处理 &ndash;&gt;-->
+    <!--    <script src="/static/js/styles.js"></script>         &lt;!&ndash; 7. 样式 &ndash;&gt;-->
+    <!--    <script src="/static/js/init.js"></script>-->
     <style>
         /* Reset and base styles */
         html, body {
@@ -206,6 +208,17 @@
         .file-content::-webkit-scrollbar-thumb:hover {
             background: #666;
         }
+
+        .container {
+            position: relative;
+            overflow: hidden;
+        }
+
+
+        .file-container {
+            position: relative;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
@@ -243,6 +256,6 @@
     </div>
 </div>
 
-    <script src="/static/main.js"></script>
+<script src="/static/main.js"></script>
 </body>
 </html>

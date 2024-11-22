@@ -10,6 +10,7 @@ from typing import List, Dict, Tuple
 from docx.opc.pkgreader import _SerializedRelationships, _SerializedRelationship
 from docx.opc.oxml import parse_xml
 
+
 def load_from_xml_v2(baseURI, rels_item_xml):
     """返回加载了关系的 _SerializedRelationships 实例。"""
     srels = _SerializedRelationships()
@@ -21,8 +22,8 @@ def load_from_xml_v2(baseURI, rels_item_xml):
             srels._srels.append(_SerializedRelationship(baseURI, rel_elm))
     return srels
 
-_SerializedRelationships.load_from_xml = load_from_xml_v2
 
+_SerializedRelationships.load_from_xml = load_from_xml_v2
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -233,11 +234,6 @@ def compare_files():
         error_msg = f"Error in compare_files: {str(e)}\nStack trace:\n{stack_trace}"
         logger.error(error_msg)
         return jsonify({'error': str(e)}), 500
-
-
-
-
-
 
 
 def setup_static_files():

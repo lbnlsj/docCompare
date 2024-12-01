@@ -257,6 +257,104 @@ async function renderPDF(url, container) {
     }
 }
 
+// 比较文件
+async function compareFiles() {
+    try {
+        const file1 = fileStates.file1;
+        const file2 = fileStates.file2;
+
+        if (!file1 || !file2) {
+            showError('Please select both files');
+            return;
+        }
+
+        const extension1 = file1.name.split('.').pop().toLowerCase();
+        const extension2 = file2.name.split('.').pop().toLowerCase();
+        if (extension1 !== extension2) {
+            showError('Files must be of the same type');
+            return;
+        }
+
+        const container1 = document.getElementById('content1');
+        const container2 = document.getElementById('content2');
+        showLoading('content1');
+        showLoading('content2');
+
+        const response = await fetch('/compare', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                file1: file1.name,
+                file2: file2.name
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (!data.success) {
+            throw new Error(data.error || 'Comparison failed');
+        }
+
+        clearViewer('content1');
+        clearViewer('content2');
+
+        const renderMethod = extension1 === 'pdf' ? renderPDF : renderDOCX;
+
+        const [viewer1, viewer2] = await Promise.all([
+            renderMethod('/static/data/' + file1.name, container1),
+            renderMethod('/static/data/' + file2.name, container2)
+        ]);
+
+        viewers.file1 = viewer1;
+        viewers.file2 = viewer2;
+
+        setupSyncScroll(container1, container2);
+
+        // 显示比较统计
+        const statsContainer = document.createElement('div');
+        statsContainer.className = 'comparison-stats';
+        statsContainer.innerHTML = `
+            <div class="stats-item">
+                <span class="stats-label">Additions:</span>
+                <span class="stats-value">${data.comparison.stats.additions}</span>
+            </div>
+            <div class="stats-item">
+                <span class="stats-label">Deletions:</span>
+                <span class="stats-value">${data.comparison.stats.deletions}</span>
+            </div>
+            <div class="stats-item">
+                <span class="stats-label">Modifications:</span>
+                <span class="stats-value">${data.comparison.stats.modifications}</span>
+            </div>
+        `;
+        statsContainer.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+        `;
+        document.body.appendChild(statsContainer);
+
+        setTimeout(() => {
+            statsContainer.style.opacity = '0';
+            statsContainer.style.transition = 'opacity 0.5s ease-out';
+            setTimeout(() => statsContainer.remove(), 500);
+        }, 5000);
+
+    } catch (error) {
+        showError(`Error comparing files: ${error.message}`);
+        console.error('Comparison error:', error);
+    }
+}
 
 // 自动加载并比较默认文件
 async function autoLoadAndCompare() {
@@ -466,374 +564,3 @@ document.addEventListener('DOMContentLoaded', () => {
 
     autoLoadAndCompare();
 });
-
-
-// Add visualization styles
-const diffStyles = document.createElement('style');
-diffStyles.textContent = `
-    .diff-highlight {
-        position: relative;
-        border: 2px solid;
-        border-radius: 4px;
-        margin: 2px 0;
-        padding: 2px;
-    }
-    
-    .diff-addition {
-        border-color: #4ade80;
-        background-color: rgba(74, 222, 128, 0.1);
-    }
-    
-    .diff-deletion {
-        border-color: #ef4444;
-        background-color: rgba(239, 68, 68, 0.1);
-    }
-    
-    .diff-modification {
-        border-color: #3b82f6;
-        background-color: rgba(59, 130, 246, 0.1);
-    }
-    
-    .diff-connection {
-        position: absolute;
-        pointer-events: none;
-        z-index: 1000;
-    }
-    
-    .diff-connection svg {
-        position: absolute;
-        top: 0;
-        left: 0;
-    }
-    
-    .diff-connection path {
-        fill: none;
-        stroke-width: 2px;
-    }
-    
-    .diff-connection-addition {
-        stroke: #4ade80;
-    }
-    
-    .diff-connection-deletion {
-        stroke: #ef4444;
-    }
-    
-    .diff-connection-modification {
-        stroke: #3b82f6;
-    }
-`;
-document.head.appendChild(diffStyles);
-
-// Helper function to highlight an element
-function highlightElement(element, type, id) {
-    const wrapper = document.createElement('div');
-    wrapper.className = `diff-highlight diff-${type}`;
-    wrapper.dataset.diffId = id;
-
-    // Preserve the original element's styles
-    const computedStyle = window.getComputedStyle(element);
-    wrapper.style.display = computedStyle.display;
-    wrapper.style.margin = computedStyle.margin;
-
-    element.parentNode.insertBefore(wrapper, element);
-    wrapper.appendChild(element);
-}
-
-// Helper function to draw connection lines between differences
-
-// Modify the compareFiles function to include visualization
-async function compareFiles() {
-    try {
-        const file1 = fileStates.file1;
-        const file2 = fileStates.file2;
-
-        if (!file1 || !file2) {
-            showError('Please select both files');
-            return;
-        }
-
-        const extension1 = file1.name.split('.').pop().toLowerCase();
-        const extension2 = file2.name.split('.').pop().toLowerCase();
-        if (extension1 !== extension2) {
-            showError('Files must be of the same type');
-            return;
-        }
-
-        const container1 = document.getElementById('content1');
-        const container2 = document.getElementById('content2');
-        showLoading('content1');
-        showLoading('content2');
-
-        const response = await fetch('/compare', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                file1: file1.name,
-                file2: file2.name
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        if (!data.success) {
-            throw new Error(data.error || 'Comparison failed');
-        }
-
-        clearViewer('content1');
-        clearViewer('content2');
-
-        const renderMethod = extension1 === 'pdf' ? renderPDF : renderDOCX;
-
-
-        const [viewer1, viewer2] = await Promise.all([
-            renderMethod('/static/data/' + file1.name, container1),
-            renderMethod('/static/data/' + file2.name, container2)
-        ]);
-
-        viewers.file1 = viewer1;
-        viewers.file2 = viewer2;
-
-        // Add visualization after rendering
-        highlightDifferences(data.comparison.changes, container1, container2);
-        setupSyncScroll(container1, container2);
-
-        // Update scroll handler to maintain connections
-        const updateConnections = debounce(() => {
-            const connections = document.querySelector('.diff-connection');
-            if (connections) {
-                connections.innerHTML = '';
-                highlightDifferences(data.comparison.changes, container1, container2);
-            }
-        }, 100);
-
-        container1.addEventListener('scroll', updateConnections);
-        container2.addEventListener('scroll', updateConnections);
-        window.addEventListener('resize', updateConnections);
-
-        // ... (rest of existing code) ...
-    } catch (error) {
-        showError(`Error comparing files: ${error.message}`);
-        console.error('Comparison error:', error);
-    }
-}
-
-// Debounce helper function
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
-
-// 修改SVG容器创建和定位
-function createSvgContainer() {
-    const container = document.querySelector('.container');
-    let svgContainer = document.querySelector('.diff-connections-container');
-
-    if (!svgContainer) {
-        svgContainer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svgContainer.classList.add('diff-connections-container');
-        Object.assign(svgContainer.style, {
-            position: 'absolute',
-            top: '0',
-            left: '0',
-            width: '100%',
-            height: '100%',
-            pointerEvents: 'none',
-            zIndex: '999'
-        });
-        container.appendChild(svgContainer);
-    }
-
-    // 清除现有的连接线
-    while (svgContainer.firstChild) {
-        svgContainer.removeChild(svgContainer.firstChild);
-    }
-
-    return svgContainer;
-}
-
-// Helper functions
-function getColorForType(type) {
-    return {
-        addition: '#4ade80',
-        deletion: '#ef4444',
-        modification: '#3b82f6'
-    }[type] || '#666666';
-}
-
-// 修改查找文本的函数来处理中文
-function findTextInContainer(container, searchText) {
-    const matches = [];
-    const walk = document.createTreeWalker(
-        container,
-        NodeFilter.SHOW_TEXT,
-        {
-            acceptNode: function (node) {
-                return node.textContent.includes(searchText)
-                    ? NodeFilter.FILTER_ACCEPT
-                    : NodeFilter.FILTER_REJECT;
-            }
-        }
-    );
-
-    let node;
-    while (node = walk.nextNode()) {
-        const wrapper = document.createElement('span');
-        const nodeText = node.textContent;
-        const startIndex = nodeText.indexOf(searchText);
-        if (startIndex >= 0) {
-            const endIndex = startIndex + searchText.length;
-            const before = nodeText.substring(0, startIndex);
-            const after = nodeText.substring(endIndex);
-
-            if (before) {
-                wrapper.appendChild(document.createTextNode(before));
-            }
-
-            const highlightSpan = document.createElement('span');
-            highlightSpan.textContent = searchText;
-            wrapper.appendChild(highlightSpan);
-
-            if (after) {
-                wrapper.appendChild(document.createTextNode(after));
-            }
-
-            node.parentNode.replaceChild(wrapper, node);
-            matches.push(highlightSpan);
-        }
-    }
-
-    return matches;
-}
-
-
-// 改进drawConnection函数，处理单边元素的情况
-function drawConnection(element1, element2, type, svgContainer) {
-    const container = document.querySelector('.container');
-    const containerRect = container.getBoundingClientRect();
-    const content1 = document.getElementById('content1');
-    const content2 = document.getElementById('content2');
-
-    // 计算文档容器的边界
-    const content1Rect = content1.getBoundingClientRect();
-    const content2Rect = content2.getBoundingClientRect();
-
-    let startX, startY, endX, endY;
-
-    if (type === 'addition') {
-        // 增加的情况：从左文档边缘到新增内容
-        const rect2 = element2.getBoundingClientRect();
-        startX = content1Rect.right - containerRect.left - 10; // 左侧文档右边缘
-        startY = rect2.top + (rect2.height / 2) - containerRect.top + container.scrollTop;
-        endX = rect2.left - containerRect.left;
-        endY = startY;
-    } else if (type === 'deletion') {
-        // 删除的情况：从删除内容到右文档边缘
-        const rect1 = element1.getBoundingClientRect();
-        startX = rect1.right - containerRect.left;
-        startY = rect1.top + (rect1.height / 2) - containerRect.top + container.scrollTop;
-        endX = content2Rect.left - containerRect.left + 10; // 右侧文档左边缘
-        endY = startY;
-    } else {
-        // 修改的情况：在两个元素之间画线
-        const rect1 = element1.getBoundingClientRect();
-        const rect2 = element2.getBoundingClientRect();
-        startX = rect1.right - containerRect.left;
-        startY = rect1.top + (rect1.height / 2) - containerRect.top + container.scrollTop;
-        endX = rect2.left - containerRect.left;
-        endY = rect2.top + (rect2.height / 2) - containerRect.top + container.scrollTop;
-    }
-
-    // 创建路径元素
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-
-    // 计算贝塞尔曲线控制点
-    const controlPointOffset = (endX - startX) * 0.5;
-    const d = `M ${startX},${startY} 
-               C ${startX + controlPointOffset},${startY} 
-                 ${endX - controlPointOffset},${endY} 
-                 ${endX},${endY}`;
-
-    // 设置路径属性
-    path.setAttribute('d', d);
-    path.setAttribute('class', `diff-connection diff-connection-${type}`);
-    path.setAttribute('stroke', getColorForType(type));
-    path.setAttribute('stroke-width', '2');
-    path.setAttribute('fill', 'none');
-    path.style.opacity = '0.8';
-
-    svgContainer.appendChild(path);
-}
-
-// 改进highlightDifferences函数
-function highlightDifferences(changes, container1, container2) {
-    const svgContainer = createSvgContainer();
-
-    // 清除现有高亮
-    document.querySelectorAll('.diff-highlight').forEach(el => {
-        const parent = el.parentNode;
-        while (el.firstChild) parent.insertBefore(el.firstChild, el);
-        parent.removeChild(el);
-    });
-
-    changes.forEach((change, index) => {
-        if (change.type === 'unchanged') return;
-
-        const searchText1 = change.type === 'modification' ? change.content.old : change.content;
-        const searchText2 = change.type === 'modification' ? change.content.new : change.content;
-
-        const elements1 = change.type !== 'addition' ? findTextInContainer(container1, searchText1) : [];
-        const elements2 = change.type !== 'deletion' ? findTextInContainer(container2, searchText2) : [];
-
-        // 高亮元素
-        elements1.forEach(el => {
-            highlightElement(el, change.type, `source-${index}`);
-        });
-        elements2.forEach(el => {
-            highlightElement(el, change.type, `target-${index}`);
-        });
-
-        // 绘制连接线 - 现在处理所有情况
-        if (change.type === 'addition' && elements2.length > 0) {
-            // 增加的情况：只有右侧有元素
-            drawConnection(null, elements2[0], 'addition', svgContainer);
-        } else if (change.type === 'deletion' && elements1.length > 0) {
-            // 删除的情况：只有左侧有元素
-            drawConnection(elements1[0], null, 'deletion', svgContainer);
-        } else if (change.type === 'modification' && elements1.length > 0 && elements2.length > 0) {
-            // 修改的情况：两侧都有元素
-            drawConnection(elements1[0], elements2[0], 'modification', svgContainer);
-        }
-    });
-
-    // 添加滚动更新
-    const updateConnections = debounce(() => {
-        highlightDifferences(changes, container1, container2);
-    }, 100);
-
-    [container1, container2].forEach(container => {
-        container.addEventListener('scroll', updateConnections);
-    });
-    window.addEventListener('resize', updateConnections);
-}
-
-
-
-
-
-
-
-

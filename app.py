@@ -27,7 +27,6 @@ _SerializedRelationships.load_from_xml = load_from_xml_v2
 def compare_files():
     """处理文件比较请求"""
     try:
-        # 获取请求中的文件信息
         data = request.get_json()
         if not data or 'file1' not in data or 'file2' not in data:
             return jsonify({'error': 'Both files are required'}), 400
@@ -35,19 +34,15 @@ def compare_files():
         file1_path = os.path.join('static', 'data', data['file1'])
         file2_path = os.path.join('static', 'data', data['file2'])
 
-        # 检查文件是否存在
         if not os.path.exists(file1_path) or not os.path.exists(file2_path):
             return jsonify({'error': 'One or both files not found'}), 404
 
-        # 获取文件扩展名
         file1_ext = os.path.splitext(file1_path)[1].lower()
         file2_ext = os.path.splitext(file2_path)[1].lower()
 
-        # 检查文件类型是否匹配
         if file1_ext != file2_ext:
             return jsonify({'error': 'Files must be of the same type'}), 400
 
-        # 根据文件类型选择比较方法
         if file1_ext == '.docx':
             result = compare_docx_files(file1_path, file2_path)
         elif file1_ext == '.pdf':
@@ -58,7 +53,10 @@ def compare_files():
         if not result['success']:
             return jsonify({'error': result['error']}), 500
 
-        # 返回比较结果
+        # 确保结果包含修改类型的统计
+        if 'stats' in result and 'modifications' not in result['stats']:
+            result['stats']['modifications'] = len([c for c in result['changes'] if c['type'] == 'modification'])
+
         return jsonify({
             'success': True,
             'comparison': result,
@@ -138,14 +136,14 @@ def upload_file():
             return jsonify({'error': 'Invalid file type'}), 400
 
         # 保存文件到临时目录
-        temp_path = os.path.join('static', 'temp', file.filename)
+        temp_path = os.path.join('static', 'data', file.filename)
         os.makedirs(os.path.dirname(temp_path), exist_ok=True)
         file.save(temp_path)
 
         return jsonify({
             'success': True,
             'filename': file.filename,
-            'path': f'/static/temp/{file.filename}'
+            'path': f'/static/data/{file.filename}'
         })
 
     except Exception as e:
@@ -189,6 +187,6 @@ if __name__ == '__main__':
         os.makedirs(os.path.join('static', 'temp'), exist_ok=True)
 
         logger.info("Starting Flask application...")
-        app.run(debug=True, host='0.0.0.0', port=5000)
+        app.run(debug=True, host='0.0.0.0', port=8501)
     except Exception as e:
         logger.error(f"Failed to start application: {str(e)}")

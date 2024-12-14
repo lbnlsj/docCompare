@@ -70,7 +70,7 @@ function setupSyncScroll(container1, container2) {
             isScrolling = true;
             const scrollPercentage = source.scrollTop / (source.scrollHeight - source.clientHeight);
             target.scrollTop = scrollPercentage * (target.scrollHeight - target.clientHeight);
-            setTimeout(() => isScrolling = false, 50);
+            setTimeout(() => isScrolling = false, 2);
         }
     }
 
@@ -257,7 +257,6 @@ async function renderPDF(url, container) {
     }
 }
 
-
 // 自动加载并比较默认文件
 async function autoLoadAndCompare() {
     try {
@@ -265,8 +264,8 @@ async function autoLoadAndCompare() {
         const file2Input = document.getElementById('file2');
 
         const [response1, response2] = await Promise.all([
-            fetch('/static/data/t1.docx'),
-            fetch('/static/data/t2.docx')
+            fetch('/static/data/t5.docx'),
+            fetch('/static/data/t6.docx')
         ]);
 
         if (!response1.ok || !response2.ok) {
@@ -280,12 +279,12 @@ async function autoLoadAndCompare() {
 
         const file1 = new File(
             [blob1],
-            't1.docx',
+            't5.docx',
             {type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}
         );
         const file2 = new File(
             [blob2],
-            't2.docx',
+            't6.docx',
             {type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}
         );
 
@@ -303,151 +302,17 @@ async function autoLoadAndCompare() {
         document.getElementById('fileName2').textContent = file2.name;
 
         await Promise.all([
-            renderFile('/static/data/t1.docx', 'content1', 't1.docx'),
-            renderFile('/static/data/t2.docx', 'content2', 't2.docx')
+            renderFile('/static/data/t5.docx', 'content1', 't5.docx'),
+            renderFile('/static/data/t6.docx', 'content2', 't6.docx')
         ]);
 
         await new Promise(resolve => setTimeout(resolve, 100));
         await compareFiles();
 
     } catch (error) {
-        console.error('Auto load error:', error);
-        showError(`Error loading default files: ${error.message}`);
+        console.error('Auto load and compare error:', error);
     }
 }
-
-// 基础样式
-const style = document.createElement('style');
-style.textContent = `
-    .container {
-        position: relative;
-        display: flex;
-        gap: 2rem;
-        width: 100%;
-        height: 80vh;
-        overflow-y: auto;
-        background: #fff;
-        padding: 20px;
-    }
-
-    .file-container {
-        position: relative;
-        flex: 1;
-        min-width: 0;
-        overflow: hidden;
-    }
-    
-    .file-header {
-        position: sticky;
-        top: 0;
-        background: #fff;
-        padding: 10px;
-        font-weight: bold;
-        border-bottom: 1px solid #e5e7eb;
-        z-index: 10;
-    }
-    
-    .file-content {
-        padding: 10px;
-    }
-    
-    .docx-viewer {
-        padding: 0;
-    }
-
-    .file-container::-webkit-scrollbar {
-        display: none;
-    }
-
-    .container::-webkit-scrollbar {
-        width: 8px;
-    }
-
-    .container::-webkit-scrollbar-track {
-        background: #f1f1f1;
-    }
-
-    .container::-webkit-scrollbar-thumb {
-        background: #888;
-        border-radius: 4px;
-    }
-
-    .container::-webkit-scrollbar-thumb:hover {
-        background: #666;
-    }
-    
-    .pdf-viewer {
-        position: relative;
-        width: 100%;
-        background-color: #525659;
-        padding: 8px;
-    }
-    
-    .pdf-page {
-        background-color: white;
-        margin: 8px auto;
-        box-shadow: 0 2px 4px;
-        background-color: white;
-        margin: 8px auto;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    }
-    
-    .textLayer {
-        position: absolute;
-        left: 0;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        overflow: hidden;
-        opacity: 0.2;
-        line-height: 1.0;
-        z-index: 2;
-    }
-    
-    .textLayer > span {
-        color: transparent;
-        position: absolute;
-        white-space: pre;
-        cursor: text;
-        transform-origin: 0% 0%;
-    }
-    
-    .textLayer ::selection {
-        background: rgba(0, 0, 255, 0.2);
-    }
-    
-    .loading {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100%;
-        font-size: 16px;
-        color: #666;
-    }
-
-    .error-message {
-        color: #EF4444;
-        padding: 10px;
-        margin: 10px 0;
-        border: 1px solid #EF4444;
-        border-radius: 4px;
-        background-color: #FEF2F2;
-    }
-
-    .comparison-stats {
-        font-size: 14px;
-    }
-
-    .stats-item {
-        margin: 5px 0;
-    }
-
-    .stats-label {
-        font-weight: bold;
-        margin-right: 8px;
-    }
-`;
-document.head.appendChild(style);
 
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
@@ -467,82 +332,6 @@ document.addEventListener('DOMContentLoaded', () => {
     autoLoadAndCompare();
 });
 
-
-// Add visualization styles
-const diffStyles = document.createElement('style');
-diffStyles.textContent = `
-    .diff-highlight {
-        position: relative;
-        border: 2px solid;
-        border-radius: 4px;
-        margin: 2px 0;
-        padding: 2px;
-    }
-    
-    .diff-addition {
-        border-color: #4ade80;
-        background-color: rgba(74, 222, 128, 0.1);
-    }
-    
-    .diff-deletion {
-        border-color: #ef4444;
-        background-color: rgba(239, 68, 68, 0.1);
-    }
-    
-    .diff-modification {
-        border-color: #3b82f6;
-        background-color: rgba(59, 130, 246, 0.1);
-    }
-    
-    .diff-connection {
-        position: absolute;
-        pointer-events: none;
-        z-index: 1000;
-    }
-    
-    .diff-connection svg {
-        position: absolute;
-        top: 0;
-        left: 0;
-    }
-    
-    .diff-connection path {
-        fill: none;
-        stroke-width: 2px;
-    }
-    
-    .diff-connection-addition {
-        stroke: #4ade80;
-    }
-    
-    .diff-connection-deletion {
-        stroke: #ef4444;
-    }
-    
-    .diff-connection-modification {
-        stroke: #3b82f6;
-    }
-`;
-document.head.appendChild(diffStyles);
-
-// Helper function to highlight an element
-function highlightElement(element, type, id) {
-    const wrapper = document.createElement('div');
-    wrapper.className = `diff-highlight diff-${type}`;
-    wrapper.dataset.diffId = id;
-
-    // Preserve the original element's styles
-    const computedStyle = window.getComputedStyle(element);
-    wrapper.style.display = computedStyle.display;
-    wrapper.style.margin = computedStyle.margin;
-
-    element.parentNode.insertBefore(wrapper, element);
-    wrapper.appendChild(element);
-}
-
-// Helper function to draw connection lines between differences
-
-// Modify the compareFiles function to include visualization
 async function compareFiles() {
     try {
         const file1 = fileStates.file1;
@@ -553,287 +342,249 @@ async function compareFiles() {
             return;
         }
 
-        const extension1 = file1.name.split('.').pop().toLowerCase();
-        const extension2 = file2.name.split('.').pop().toLowerCase();
-        if (extension1 !== extension2) {
-            showError('Files must be of the same type');
-            return;
-        }
-
         const container1 = document.getElementById('content1');
         const container2 = document.getElementById('content2');
-        showLoading('content1');
-        showLoading('content2');
 
-        const response = await fetch('/compare', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                file1: file1.name,
-                file2: file2.name
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        if (!data.success) {
-            throw new Error(data.error || 'Comparison failed');
-        }
-
+        // Clear existing viewers
         clearViewer('content1');
         clearViewer('content2');
 
-        const renderMethod = extension1 === 'pdf' ? renderPDF : renderDOCX;
+        // Show loading state
+        showLoading('content1');
+        showLoading('content2');
 
+        // Render both files
+        const extension = file1.name.split('.').pop().toLowerCase();
+        const renderMethod = extension === 'pdf' ? renderPDF : renderDOCX;
 
-        const [viewer1, viewer2] = await Promise.all([
+        await Promise.all([
             renderMethod('/static/data/' + file1.name, container1),
             renderMethod('/static/data/' + file2.name, container2)
         ]);
 
-        viewers.file1 = viewer1;
-        viewers.file2 = viewer2;
+        // Wait a bit for the render to complete and DOM to update
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-        // Add visualization after rendering
-        highlightDifferences(data.comparison.changes, container1, container2);
         setupSyncScroll(container1, container2);
 
-        // Update scroll handler to maintain connections
-        const updateConnections = debounce(() => {
-            const connections = document.querySelector('.diff-connection');
-            if (connections) {
-                connections.innerHTML = '';
-                highlightDifferences(data.comparison.changes, container1, container2);
-            }
-        }, 100);
+        // 假设你需要高亮的范围
+        const ranges = [
+            {file1: [78, 81], file2: [78, 81], id: 1},
+            {file1: [300, 380], file2: [300, 300], id: 2}
+        ];
 
-        container1.addEventListener('scroll', updateConnections);
-        container2.addEventListener('scroll', updateConnections);
-        window.addEventListener('resize', updateConnections);
+        // 高亮并绘制连线
+        ranges.forEach(range => highlightAndConnect(range.file1, range.file2, range.id));
 
-        // ... (rest of existing code) ...
     } catch (error) {
         showError(`Error comparing files: ${error.message}`);
         console.error('Comparison error:', error);
     }
 }
 
-// Debounce helper function
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
+function highlightAndConnect(range1, range2, id) {
+    // 获取或创建蒙版容器
+    function getOrCreateOverlay(containerId) {
+        const container = document.getElementById(containerId);
+        let overlay = container.querySelector(`.highlight-overlay-${id}`);
 
-
-// 修改SVG容器创建和定位
-function createSvgContainer() {
-    const container = document.querySelector('.container');
-    let svgContainer = document.querySelector('.diff-connections-container');
-
-    if (!svgContainer) {
-        svgContainer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svgContainer.classList.add('diff-connections-container');
-        Object.assign(svgContainer.style, {
-            position: 'absolute',
-            top: '0',
-            left: '0',
-            width: '100%',
-            height: '100%',
-            pointerEvents: 'none',
-            zIndex: '999'
-        });
-        container.appendChild(svgContainer);
-    }
-
-    // 清除现有的连接线
-    while (svgContainer.firstChild) {
-        svgContainer.removeChild(svgContainer.firstChild);
-    }
-
-    return svgContainer;
-}
-
-// Helper functions
-function getColorForType(type) {
-    return {
-        addition: '#4ade80',
-        deletion: '#ef4444',
-        modification: '#3b82f6'
-    }[type] || '#666666';
-}
-
-// 修改查找文本的函数来处理中文
-function findTextInContainer(container, searchText) {
-    const matches = [];
-    const walk = document.createTreeWalker(
-        container,
-        NodeFilter.SHOW_TEXT,
-        {
-            acceptNode: function (node) {
-                return node.textContent.includes(searchText)
-                    ? NodeFilter.FILTER_ACCEPT
-                    : NodeFilter.FILTER_REJECT;
-            }
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.className = `highlight-overlay-${id}`;
+            overlay.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                pointer-events: none;
+                z-index: 1;
+            `;
+            container.style.position = 'relative';
+            container.appendChild(overlay);
         }
-    );
 
-    let node;
-    while (node = walk.nextNode()) {
-        const wrapper = document.createElement('span');
-        const nodeText = node.textContent;
-        const startIndex = nodeText.indexOf(searchText);
-        if (startIndex >= 0) {
-            const endIndex = startIndex + searchText.length;
-            const before = nodeText.substring(0, startIndex);
-            const after = nodeText.substring(endIndex);
+        return overlay;
+    }
 
-            if (before) {
-                wrapper.appendChild(document.createTextNode(before));
-            }
+    // 创建或获取 SVG 容器并确保其与文件内容同步
+    function getOrCreateSVGContainer(containerId) {
+        const container = document.getElementById(containerId);
+        let svgContainer = container.querySelector(`.diff-connections-container-${id}`);
 
-            const highlightSpan = document.createElement('span');
-            highlightSpan.textContent = searchText;
-            wrapper.appendChild(highlightSpan);
+        if (!svgContainer) {
+            svgContainer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svgContainer.setAttribute('class', `diff-connections-container-${id}`);
+            svgContainer.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 10000%;
+                pointer-events: none;
+                z-index: 2;
+            `;
+            container.appendChild(svgContainer);
+        }
 
-            if (after) {
-                wrapper.appendChild(document.createTextNode(after));
+        return svgContainer;
+    }
+
+    // 计算文本范围的客户端矩形
+    function getRangeRects(container, rangeStart, rangeEnd) {
+        const range = document.createRange();
+        const textRects = [];
+        let charCount = 0;
+
+        // 改进的 TreeWalker，只获取 p 和 span 标签内的文本节点
+        const walker = document.createTreeWalker(
+            container,
+            NodeFilter.SHOW_TEXT,
+            {
+                acceptNode: function (node) {
+                    const parent = node.parentElement;
+                    // 检查父元素是否为 p 或者 span
+                    if (parent && (parent.tagName === 'P' || parent.tagName === 'SPAN')) {
+                        return NodeFilter.FILTER_ACCEPT;
+                    }
+                    return NodeFilter.FILTER_SKIP;
+                }
+            },
+            false
+        );
+        let node;
+        let startNode = null;
+        let endNode = null;
+        let startOffset = 0;
+        let endOffset = 0;
+
+        // 找到范围的起点和终点
+        while ((node = walker.nextNode())) {
+            const length = node.textContent.length;
+
+            if (!startNode && charCount + length > rangeStart) {
+                startNode = node;
+                startOffset = rangeStart - charCount;
             }
 
-            node.parentNode.replaceChild(wrapper, node);
-            matches.push(highlightSpan);
+            if (!endNode && charCount + length >= rangeEnd) {
+                endNode = node;
+                endOffset = rangeEnd - charCount;
+                break;
+            }
+
+            charCount += length;
         }
+
+        if (startNode && endNode) {
+            range.setStart(startNode, startOffset);
+            range.setEnd(endNode, endOffset);
+
+            // 获取范围的客户端矩形
+            const rects = range.getClientRects();
+            for (let i = 0; i < rects.length; i++) {
+                textRects.push(rects[i]);
+            }
+        }
+        return textRects;
     }
 
-    return matches;
-}
-
-
-// 改进drawConnection函数，处理单边元素的情况
-function drawConnection(element1, element2, type, svgContainer) {
-    const container = document.querySelector('.container');
-    const containerRect = container.getBoundingClientRect();
-    const content1 = document.getElementById('content1');
-    const content2 = document.getElementById('content2');
-
-    // 计算文档容器的边界
-    const content1Rect = content1.getBoundingClientRect();
-    const content2Rect = content2.getBoundingClientRect();
-
-    let startX, startY, endX, endY;
-
-    if (type === 'addition') {
-        // 增加的情况：从左文档边缘到新增内容
-        const rect2 = element2.getBoundingClientRect();
-        startX = content1Rect.right - containerRect.left - 10; // 左侧文档右边缘
-        startY = rect2.top + (rect2.height / 2) - containerRect.top + container.scrollTop;
-        endX = rect2.left - containerRect.left;
-        endY = startY;
-    } else if (type === 'deletion') {
-        // 删除的情况：从删除内容到右文档边缘
-        const rect1 = element1.getBoundingClientRect();
-        startX = rect1.right - containerRect.left;
-        startY = rect1.top + (rect1.height / 2) - containerRect.top + container.scrollTop;
-        endX = content2Rect.left - containerRect.left + 10; // 右侧文档左边缘
-        endY = startY;
-    } else {
-        // 修改的情况：在两个元素之间画线
-        const rect1 = element1.getBoundingClientRect();
-        const rect2 = element2.getBoundingClientRect();
-        startX = rect1.right - containerRect.left;
-        startY = rect1.top + (rect1.height / 2) - containerRect.top + container.scrollTop;
-        endX = rect2.left - containerRect.left;
-        endY = rect2.top + (rect2.height / 2) - containerRect.top + container.scrollTop;
+    // 在蒙版上创建高亮元素
+    function createHighlights(overlay, rects, containerRect, className) {
+        rects.forEach(rect => {
+            const highlight = document.createElement('div');
+            highlight.className = `highlight ${className}`;
+            highlight.style.cssText = `
+                position: absolute;
+                background-color: rgba(255, 255, 0, 0.3);
+                top: ${rect.top - containerRect.top}px;
+                left: ${rect.left - containerRect.left}px;
+                width: ${rect.width}px;
+                height: ${rect.height}px;
+                pointer-events: none;
+            `;
+            overlay.appendChild(highlight);
+        });
     }
 
-    // 创建路径元素
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    // 重新计算和绘制 SVG 连接线
+    function updateConnections(rects1, rects2, svgContainer, containerRect) {
+        console.log('rects1');
+        console.log(rects1);
+        console.log('rects2');
+        console.log(rects2);
+        svgContainer.innerHTML = ''; // 清除现有路径
 
-    // 计算贝塞尔曲线控制点
-    const controlPointOffset = (endX - startX) * 0.5;
-    const d = `M ${startX},${startY} 
-               C ${startX + controlPointOffset},${startY} 
-                 ${endX - controlPointOffset},${endY} 
-                 ${endX},${endY}`;
+        rects1.forEach((rect1, index) => {
+            if (rects2[index]) {
+                const rect2 = rects2[index];
 
-    // 设置路径属性
-    path.setAttribute('d', d);
-    path.setAttribute('class', `diff-connection diff-connection-${type}`);
-    path.setAttribute('stroke', getColorForType(type));
-    path.setAttribute('stroke-width', '2');
-    path.setAttribute('fill', 'none');
-    path.style.opacity = '0.8';
+                const x1 = rect1.right - containerRect.left;
+                const y1 = rect1.top + rect1.height / 2 - containerRect.top;
+                const x2 = rect2.left - containerRect.left;
+                const y2 = rect2.top + rect2.height / 2 - containerRect.top;
 
-    svgContainer.appendChild(path);
-}
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                const controlPointOffset = (x2 - x1) / 2;
+                const d = `M ${x1} ${y1} 
+                          C ${x1 + controlPointOffset} ${y1},
+                            ${x2 - controlPointOffset} ${y2},
+                            ${x2} ${y2}`;
 
-// 改进highlightDifferences函数
-function highlightDifferences(changes, container1, container2) {
-    const svgContainer = createSvgContainer();
+                path.setAttribute('d', d);
+                path.setAttribute('stroke', 'rgba(255, 165, 0, 0.5)');
+                path.setAttribute('stroke-width', '2');
+                path.setAttribute('fill', 'none');
+                // path.style.zIndex = 10;
 
-    // 清除现有高亮
-    document.querySelectorAll('.diff-highlight').forEach(el => {
-        const parent = el.parentNode;
-        while (el.firstChild) parent.insertBefore(el.firstChild, el);
-        parent.removeChild(el);
-    });
-
-    changes.forEach((change, index) => {
-        if (change.type === 'unchanged') return;
-
-        const searchText1 = change.type === 'modification' ? change.content.old : change.content;
-        const searchText2 = change.type === 'modification' ? change.content.new : change.content;
-
-        const elements1 = change.type !== 'addition' ? findTextInContainer(container1, searchText1) : [];
-        const elements2 = change.type !== 'deletion' ? findTextInContainer(container2, searchText2) : [];
-
-        // 高亮元素
-        elements1.forEach(el => {
-            highlightElement(el, change.type, `source-${index}`);
+                svgContainer.appendChild(path);
+            }
         });
-        elements2.forEach(el => {
-            highlightElement(el, change.type, `target-${index}`);
+    }
+
+    // 清除现有的高亮和连接
+    function clearExisting(id) {
+        ['content1', 'content2'].forEach(containerId => {
+            const overlays = document.querySelectorAll(`#${containerId} .highlight-overlay-${id}`);
+            overlays.forEach(overlay => overlay.innerHTML = '');
+
+            const connections = document.querySelector(`#${containerId} .diff-connections-container-${id}`);
+            if (connections) {
+                connections.innerHTML = '';
+            }
         });
+    }
 
-        // 绘制连接线 - 现在处理所有情况
-        if (change.type === 'addition' && elements2.length > 0) {
-            // 增加的情况：只有右侧有元素
-            drawConnection(null, elements2[0], 'addition', svgContainer);
-        } else if (change.type === 'deletion' && elements1.length > 0) {
-            // 删除的情况：只有左侧有元素
-            drawConnection(elements1[0], null, 'deletion', svgContainer);
-        } else if (change.type === 'modification' && elements1.length > 0 && elements2.length > 0) {
-            // 修改的情况：两侧都有元素
-            drawConnection(elements1[0], elements2[0], 'modification', svgContainer);
-        }
-    });
+    // 主执行逻辑
+    clearExisting(id);
 
-    // 添加滚动更新
-    const updateConnections = debounce(() => {
-        highlightDifferences(changes, container1, container2);
-    }, 100);
+    const container1 = document.getElementById('content1');
+    const container2 = document.getElementById('content2');
 
-    [container1, container2].forEach(container => {
-        container.addEventListener('scroll', updateConnections);
-    });
-    window.addEventListener('resize', updateConnections);
+    const overlay1 = getOrCreateOverlay('content1');
+    const overlay2 = getOrCreateOverlay('content2');
+
+    const containerRect1 = container1.getBoundingClientRect();
+    const containerRect2 = container2.getBoundingClientRect();
+
+    const rects1 = getRangeRects(container1, range1[0], range1[1]);
+    const rects2 = getRangeRects(container2, range2[0], range2[1]);
+
+    createHighlights(overlay1, rects1, containerRect1, 'highlight-left');
+    createHighlights(overlay2, rects2, containerRect2, 'highlight-right');
+
+    const svgContainer1 = getOrCreateSVGContainer('content1');
+    const svgContainer2 = getOrCreateSVGContainer('content2');
+
+    updateConnections(rects1, rects2, svgContainer1, containerRect1);
+    updateConnections(rects1, rects2, svgContainer2, containerRect2);
+
+    // 添加滚动事件监听器，以便在滚动时更新连接线
+    // container1.addEventListener('scroll', () => {
+    //     updateConnections(rects1, rects2, svgContainer1, container1.getBoundingClientRect());
+    // });
+    //
+    // container2.addEventListener('scroll', () => {
+    //     updateConnections(rects1, rects2, svgContainer2, container2.getBoundingClientRect());
+    // });
 }
-
-
-
-
-
-
-
-

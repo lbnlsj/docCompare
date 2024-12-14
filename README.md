@@ -2,7 +2,7 @@
 
 一个基于Web的文档对比工具，支持PDF和DOCX文件的并排比较功能，类似于PyCharm的文件对比功能。本工具支持文档差异显示和同步滚动等特性。
 
-![演示截图](demo-screenshot.png)
+![compare.png](data/compare.png)
 
 ## 主要功能
 

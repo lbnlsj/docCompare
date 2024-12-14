@@ -36,6 +36,186 @@
             flex-direction: column;
         }
 
+        .diff-highlight {
+            position: relative;
+            border: 2px solid;
+            border-radius: 4px;
+            margin: 2px 0;
+            padding: 2px;
+        }
+
+        .diff-addition {
+            border-color: #4ade80;
+            background-color: rgba(74, 222, 128, 0.1);
+        }
+
+        .diff-deletion {
+            border-color: #ef4444;
+            background-color: rgba(239, 68, 68, 0.1);
+        }
+
+        .diff-modification {
+            border-color: #3b82f6;
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+
+        .diff-connection {
+            position: absolute;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .diff-connection svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .container {
+            position: relative;
+            display: flex;
+            gap: 2rem;
+            width: 100%;
+            height: 80vh;
+            overflow-y: auto;
+            background: #fff;
+            padding: 20px;
+        }
+
+        .file-container {
+            position: relative;
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .file-header {
+            position: sticky;
+            top: 0;
+            background: #fff;
+            padding: 10px;
+            font-weight: bold;
+            border-bottom: 1px solid #e5e7eb;
+            z-index: 10;
+        }
+
+        .file-content {
+            padding: 10px;
+        }
+
+        .docx-viewer {
+            padding: 0;
+        }
+
+        .file-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .container::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .container::-webkit-scrollbar-thumb:hover {
+            background: #666;
+        }
+
+        .pdf-viewer {
+            position: relative;
+            width: 100%;
+            background-color: #525659;
+            padding: 8px;
+        }
+
+        .pdf-page {
+            background-color: white;
+            margin: 8px auto;
+            box-shadow: 0 2px 4px;
+            background-color: white;
+            margin: 8px auto;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .textLayer {
+            position: absolute;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            opacity: 0.2;
+            line-height: 1.0;
+            z-index: 2;
+        }
+
+        .textLayer > span {
+            color: transparent;
+            position: absolute;
+            white-space: pre;
+            cursor: text;
+            transform-origin: 0% 0%;
+        }
+
+        .textLayer ::selection {
+            background: rgba(0, 0, 255, 0.2);
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            font-size: 16px;
+            color: #666;
+        }
+
+        .error-message {
+            color: #EF4444;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #EF4444;
+            border-radius: 4px;
+            background-color: #FEF2F2;
+        }
+
+        .comparison-stats {
+            font-size: 14px;
+        }
+
+        .stats-item {
+            margin: 5px 0;
+        }
+
+        .stats-label {
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .diff-connection path {
+            fill: none;
+            stroke-width: 2px;
+        }
+
+        .diff-connection-addition {
+            stroke: #4ade80;
+        }
+
+        .diff-connection-deletion {
+            stroke: #ef4444;
+        }
+
+        .diff-connection-modification {
+            stroke: #3b82f6;
+        }
+
         /* Control bar container */
         .upload-section {
             background: white;

@@ -4,12 +4,7 @@ import shutil
 import logging
 import traceback
 import os
-from test import (
-    compare_docx_files,
-    compare_pdf_files,
-    load_from_xml_v2,
-    _SerializedRelationships
-)
+from difflib import SequenceMatcher
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -19,86 +14,154 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__, static_folder='static', template_folder='templates')
 CORS(app)
 
-# 设置docx的XML加载方法
-_SerializedRelationships.load_from_xml = load_from_xml_v2
 
+def merge_close_differences(differences, max_gap=50, min_similarity=0.3):
+    """
+    合并相近的差异为一个大的差异块
 
-@app.route('/compare', methods=['POST'])
-def compare_files():
-    """处理文件比较请求"""
-    try:
-        data = request.get_json()
-        if not data or 'file1' not in data or 'file2' not in data:
-            return jsonify({'error': 'Both files are required'}), 400
+    Parameters:
+    - differences: 原始差异列表
+    - max_gap: 两个差异之间的最大字符距离
+    - min_similarity: 合并差异时要求的最小相似度
 
-        file1_path = os.path.join('static', 'data', data['file1'])
-        file2_path = os.path.join('static', 'data', data['file2'])
+    Returns:
+    - 合并后的差异列表
+    """
+    if not differences:
+        return differences
 
-        if not os.path.exists(file1_path) or not os.path.exists(file2_path):
-            return jsonify({'error': 'One or both files not found'}), 404
+    merged = []
+    current_group = differences[0].copy()
 
-        file1_ext = os.path.splitext(file1_path)[1].lower()
-        file2_ext = os.path.splitext(file2_path)[1].lower()
+    for next_diff in differences[1:]:
+        # 计算两个差异之间的距离
+        gap1 = next_diff['file1']['start'] - current_group['file1']['end']
+        gap2 = next_diff['file2']['start'] - current_group['file2']['end']
 
-        if file1_ext != file2_ext:
-            return jsonify({'error': 'Files must be of the same type'}), 400
+        # 检查是否应该合并
+        should_merge = (
+            # 检查距离
+                (gap1 <= max_gap and gap2 <= max_gap) and
+                # 检查密集度 (通过比较差异大小和间隔)
+                (min(gap1, gap2) < max(
+                    len(current_group['file1']['text']),
+                    len(current_group['file2']['text'])
+                ) / 2)
+        )
 
-        if file1_ext == '.docx':
-            result = compare_docx_files(file1_path, file2_path)
-        elif file1_ext == '.pdf':
-            result = compare_pdf_files(file1_path, file2_path)
+        if should_merge:
+            # 合并差异，包括中间的文本
+            current_group['file1']['end'] = next_diff['file1']['end']
+            current_group['file2']['end'] = next_diff['file2']['end']
+            current_group['file1']['text'] = current_group['file1']['text'] + "..." + next_diff['file1']['text']
+            current_group['file2']['text'] = current_group['file2']['text'] + "..." + next_diff['file2']['text']
+            current_group['type'] = 'modification'  # 合并后的差异都标记为修改
         else:
-            return jsonify({'error': 'Unsupported file type'}), 400
+            merged.append(current_group)
+            current_group = next_diff.copy()
 
-        if not result['success']:
-            return jsonify({'error': result['error']}), 500
-
-        # 确保结果包含修改类型的统计
-        if 'stats' in result and 'modifications' not in result['stats']:
-            result['stats']['modifications'] = len([c for c in result['changes'] if c['type'] == 'modification'])
-
-        return jsonify({
-            'success': True,
-            'comparison': result,
-            'file1': data['file1'],
-            'file2': data['file2']
-        })
-
-    except Exception as e:
-        stack_trace = traceback.format_exc()
-        error_msg = f"Error in compare_files: {str(e)}\nStack trace:\n{stack_trace}"
-        logger.error(error_msg)
-        return jsonify({'error': str(e)}), 500
+    merged.append(current_group)
+    return merged
 
 
-def setup_static_files():
-    """设置静态文件和目录结构"""
-    try:
-        # 创建必要的目录
-        directories = ['static', 'static/data', 'data', 'templates']
-        for directory in directories:
-            os.makedirs(directory, exist_ok=True)
-            logger.info(f"Created or verified directory: {directory}")
+def compare_text_content(text1, text2):
+    """比较两段文本内容并返回差异"""
+    # 创建序列匹配器
+    matcher = SequenceMatcher(None, text1, text2, autojunk=False)
 
-        # 复制默认文件到静态目录
-        default_files = ['t1.docx', 't2.docx']
-        for file in default_files:
-            source = os.path.join('data', file)
-            destination = os.path.join('static', 'data', file)
-            if os.path.exists(source):
-                shutil.copy2(source, destination)
-                logger.info(f"Copied {file} to static/data directory")
-            else:
-                logger.warning(f"Source file not found: {source}")
-    except Exception as e:
-        logger.error(f"Error in setup_static_files: {str(e)}")
-        raise
+    # 处理差异
+    differences = []
+    stats = {
+        'additions': 0,
+        'deletions': 0,
+        'modifications': 0
+    }
+
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag == 'equal':
+            continue
+
+        # 确定差异类型
+        diff_type = {
+            'replace': 'modification',
+            'delete': 'deletion',
+            'insert': 'addition'
+        }.get(tag, 'modification')
+
+        # 创建差异记录
+        difference = {
+            'type': diff_type,
+            'file1': {
+                'start': i1,
+                'end': i2,
+                'text': text1[i1:i2]
+            },
+            'file2': {
+                'start': j1,
+                'end': j2,
+                'text': text2[j1:j2]
+            }
+        }
+
+        differences.append(difference)
+        stats[diff_type + 's'] += 1
+
+    # 合并相近的差异
+    merged_differences = merge_close_differences(
+        differences,
+        max_gap=50  # 可以调整这个值来控制合并的范围
+    )
+
+    # 更新统计信息
+    stats = {
+        'additions': len([d for d in merged_differences if d['type'] == 'addition']),
+        'deletions': len([d for d in merged_differences if d['type'] == 'deletion']),
+        'modifications': len([d for d in merged_differences if d['type'] == 'modification'])
+    }
+
+    return {'differences': merged_differences, 'stats': stats}
 
 
 @app.route('/')
 def index():
     """渲染主页"""
     return render_template('index.html')
+
+
+@app.route('/compare', methods=['POST'])
+def compare_files():
+    """处理文本比较请求"""
+    try:
+        data = request.get_json()
+        if not data or 'text1' not in data or 'text2' not in data:
+            return jsonify({'error': 'Both text contents are required'}), 400
+
+        text1 = data['text1'].replace(' ', ' ')
+        text2 = data['text2'].replace(' ', ' ')
+
+        # 比较文本
+        result = compare_text_content(text1, text2)
+
+        # 转换差异为范围格式
+        ranges = []
+        for idx, diff in enumerate(result['differences'], 1):
+            ranges.append({
+                'id': idx,
+                'file1': [diff['file1']['start'], diff['file1']['end']],
+                'file2': [diff['file2']['start'], diff['file2']['end']],
+                'type': diff['type'],
+                'file1_text': diff['file1']['text'],
+                'file2_text': diff['file2']['text'],
+            })
+
+        return jsonify({
+            'success': True,
+            'ranges': ranges,
+            'stats': result['stats']
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/static/<path:path>')
@@ -135,10 +198,10 @@ def upload_file():
         if ext not in ['.pdf', '.docx']:
             return jsonify({'error': 'Invalid file type'}), 400
 
-        # 保存文件到临时目录
-        temp_path = os.path.join('static', 'data', file.filename)
-        os.makedirs(os.path.dirname(temp_path), exist_ok=True)
-        file.save(temp_path)
+        # 保存文件到数据目录
+        file_path = os.path.join('static', 'data', file.filename)
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        file.save(file_path)
 
         return jsonify({
             'success': True,
@@ -165,17 +228,16 @@ def cleanup_temp_files():
         return jsonify({'error': str(e)}), 500
 
 
-@app.errorhandler(404)
-def not_found_error(error):
-    """处理404错误"""
-    return jsonify({'error': 'Not found'}), 404
-
-
-@app.errorhandler(500)
-def internal_error(error):
-    """处理500错误"""
-    logger.error(f"Internal server error: {str(error)}")
-    return jsonify({'error': 'Internal server error'}), 500
+def setup_static_files():
+    """设置静态文件和目录结构"""
+    try:
+        directories = ['static', 'static/data', 'data', 'templates', 'static/temp']
+        for directory in directories:
+            os.makedirs(directory, exist_ok=True)
+            logger.info(f"Created or verified directory: {directory}")
+    except Exception as e:
+        logger.error(f"Error in setup_static_files: {str(e)}")
+        raise
 
 
 # 初始化设置
@@ -183,10 +245,7 @@ setup_static_files()
 
 if __name__ == '__main__':
     try:
-        # 确保临时目录存在
-        os.makedirs(os.path.join('static', 'temp'), exist_ok=True)
-
         logger.info("Starting Flask application...")
-        app.run(debug=True, host='0.0.0.0', port=8501)
+        app.run(debug=True, host='0.0.0.0', port=1800)
     except Exception as e:
         logger.error(f"Failed to start application: {str(e)}")
